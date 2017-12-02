@@ -23,7 +23,7 @@ class Memory():
             self.pointer_sys_new += block_size
         else:
             if self.max_size - (self.pointer_user_new + block_size) < 0:
-                raise Exception("Out of memory to allocate proccess", PID)
+                raise Exception("Memoria incuficiente para alocar o processo: ", PID)
             else:
                 self.proc_offsets[PID] = self.pointer_user_new
                 self.pointer_user_new += block_size

@@ -1,13 +1,15 @@
 import sys
-import proccess_man as pm
+import process_man as pm
 import memory_man as mm
 import file_man as fm
+import queue_man as qm
 
 memory = None
 file_man = None
+queue_man = None
 # Dicionario para guardar PID -> Process (facilita busca)
 proc_dict = {}
-# Lista para guardar processos de fato criados (ordem)
+# Lista para guardar processos pela ordem de chegada
 proc_list = []
 
 
@@ -16,23 +18,31 @@ def usage():
           "<arquivo de processos> <arquivo de arquivos>")
 
 
+def start_queue_man():
+    global queue_man
+
+    queue_man = qm.QueueMan()
+
+
 def start_memory():
     global memory
 
     memory = mm.Memory()
 
 
-def start_proccess(proccess_info):
+def start_process(process_info):
     """
-    Cria os processos a partir das info no arquivo proccess.txt
+    Cria os processos a partir das info no arquivo process.txt
     """
     global memory
     global proc_dict
     global proc_list
 
-    print("Proccess:")
+    print("Process:")
     # Lista com informacoes de cada processo
-    proc_list_info = [pm.Proccess(proc.split(',')) for proc in proccess_info]
+    process_info_order = [proc.split(',') for proc in process_info]
+    process_info_order.sort(key=lambda p: int(p[0]))
+    proc_list_info = [pm.Process(proc) for proc in process_info_order]
     for proc in proc_list_info:
         try:
             is_system_proc = proc.prioridade == 0  # se eh processo do sistema
@@ -44,6 +54,7 @@ def start_proccess(proccess_info):
             print()
         except Exception as e:
             print(e)
+    proc_list.sort(key=lambda p: p.tempo_de_init, reverse=True)
 
 
 def start_file_man(files_info):
@@ -67,21 +78,21 @@ def run_operations(operations):
     """
     for i, op in enumerate(operations):
         op_info = [info.strip() for info in op.split(',')]
-        proccess = int(op_info[0])
+        process = int(op_info[0])
         operation = int(op_info[1])
         file_name = op_info[2]
         try:
             print("Operação " + str(i + 1) + " => ", end='')
-            if proccess not in proc_dict:
+            if process not in proc_dict:
                 raise Exception("Não existe o processo.\n")
             if operation == 0:  # Criar novo
                 block_size = int(op_info[3])
-                blocks = file_man.create_file(file_name, block_size, proccess)
+                blocks = file_man.create_file(file_name, block_size, process)
                 print("Sucesso")
                 print("O processo " + str(i) + " criou o arquivo " + file_name, end='')
                 print(" (blocos " + ', '.join([str(num) for num in blocks]) + ").\n")
             elif operation == 1:
-                file_man.delete_file(file_name, proccess)
+                file_man.delete_file(file_name, process)
                 print("Sucesso")
                 print("O processo " + str(i) + " deletou o arquivo " + file_name + ".\n")
         except Exception as e:
@@ -96,12 +107,46 @@ def run(proccess_info, files_info):
     global proc_dict
     global proc_list
     global file_man
+    global queue_man
 
     start_memory()
-    start_proccess(proccess_info)
+    start_process(proccess_info)
+    start_queue_man()
+
+    # Rodar processos
+    time = 0
+    proc_tempo_real = False
+    current_proc = None
+    while len(proc_list) > 0 or queue_man.size_of_all_queues() != 0 or current_proc is not None:
+        queue_man.age()
+        # Coloca os processos que chegaram agora na fila
+        while len(proc_list) > 0 and proc_list[-1].tempo_de_init == time:
+            queue_man.put_in_queue(proc_list.pop())
+        # Pegar um processo da fila
+        if current_proc is None and queue_man.size_of_all_queues() != 0:
+            current_proc = queue_man.get_from_queue()
+            if current_proc.instruction_counter == 0:
+                print("\nprocess", current_proc.pid, "=>")
+                print("P" + str(current_proc.pid) + " STARTED")
+        # Roda uma instrucao do processo
+        if current_proc is not None:
+            print("P" + str(current_proc.pid) + " instruction",
+                  current_proc.instruction_counter + 1, "at time", time+1)
+            current_proc.instruction_counter += 1
+            # Se o processo acabou
+            if current_proc.instruction_counter == current_proc.tempo_proc:
+                print("P" + str(current_proc.pid), " return SIGINT\n")
+                current_proc = None
+            # Troca de contexto
+            elif current_proc.prioridade != 0:
+                queue_man.put_in_queue(current_proc)
+                current_proc = None
+        time += 1
+        #queue_man.print_ages()
+
     # Print final disk state
-    start_file_man(files_info)
-    file_man.print_disk()
+    #start_file_man(files_info)
+    #file_man.print_disk()
 
 
 def main():
