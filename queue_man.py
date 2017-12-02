@@ -24,21 +24,41 @@ class QueueMan():
         else:
             raise Exception("Capacidade maxima de processos atingida (1000).")
 
-    def get_from_queue(self):
+    def get_from_queue(self, io_man):
         if len(self.real_time) != 0:
             process = self.real_time.pop(0)
         elif len(self.prioridade_1) != 0:
             process = self.prioridade_1.pop(0)
+            try:
+                io_man.proc_alloc(process)
+            except Exception as e:
+                print(e)
+                self.prioridade_1.append(process)
+                process = self.get_from_queue(io_man)
+
             for p2 in self.prioridade_2:
                 p2.age += 1
             for p3 in self.prioridade_3:
                 p3.age += 1
         elif len(self.prioridade_2) != 0:
             process = self.prioridade_2.pop(0)
+            try:
+                io_man.proc_alloc(process)
+            except Exception as e:
+                print(e)
+                self.prioridade_2.append(process)
+                process = self.get_from_queue(io_man)
             for p3 in self.prioridade_3:
                 p3.age += 1
         else:
             process = self.prioridade_3.pop(0)
+            try:
+                io_man.proc_alloc(process)
+            except Exception as e:
+                print(e)
+                self.prioridade_3.append(process)
+                process = self.get_from_queue(io_man)
+
         return process
 
     def print_ages(self):

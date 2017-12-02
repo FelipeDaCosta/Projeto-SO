@@ -3,6 +3,7 @@ import process_man as pm
 import memory_man as mm
 import file_man as fm
 import queue_man as qm
+import io_man as im
 
 memory = None
 file_man = None
@@ -11,6 +12,7 @@ queue_man = None
 proc_dict = {}
 # Lista para guardar processos pela ordem de chegada
 proc_list = []
+io_man = im.IOMan()
 
 
 def usage():
@@ -124,7 +126,7 @@ def run(proccess_info, files_info):
             queue_man.put_in_queue(proc_list.pop())
         # Pegar um processo da fila
         if current_proc is None and queue_man.size_of_all_queues() != 0:
-            current_proc = queue_man.get_from_queue()
+            current_proc = queue_man.get_from_queue(io_man)
             if current_proc.instruction_counter == 0:
                 print("\nprocess", current_proc.pid, "=>")
                 print("P" + str(current_proc.pid) + " STARTED")
@@ -136,6 +138,7 @@ def run(proccess_info, files_info):
             # Se o processo acabou
             if current_proc.instruction_counter == current_proc.tempo_proc:
                 print("P" + str(current_proc.pid), " return SIGINT\n")
+                io_man.proc_dealloc(current_proc)
                 current_proc = None
             # Troca de contexto
             elif current_proc.prioridade != 0:
