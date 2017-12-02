@@ -51,9 +51,10 @@ class FileMan():
             if self.disk[i] == 0:  # Checa se tem espaco vazio
                 espaco_vazio = 0
                 while espaco_vazio + i < self.size - 1 and \
-                        self.disk[espaco_vazio + i] == 0:
+                        self.disk[espaco_vazio + i] == 0 and \
+                        espaco_vazio < size:
                     espaco_vazio += 1
-                if espaco_vazio >= size:  # Se tiver espaco
+                if espaco_vazio == size:  # Se tiver espaco
                     self.files_info[file_name] = File(file_name, i, size, PID)
                     for j in range(i, i+size):
                         self.disk[j] = file_name
