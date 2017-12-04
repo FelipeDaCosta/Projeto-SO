@@ -35,12 +35,14 @@ class FileMan():
             tem permissao. force vai ser true se for um processo
             do sistema (prioridade 0).
         """
+        if file_name not in self.files_info:
+            raise Exception("Arquivo " + file_name + " nao existe.\n")
         if self.files_info[file_name].owner == PID or \
            self.files_info[file_name].owner == -1 or force:
             # Apagando
             self.disk = [f if f != file_name else 0 for f in self.disk]
         else:
-            raise Exception("Processo " + PID +
+            raise Exception("Processo " + str(PID) +
                             " nao tem permissao para apagar " + file_name + "\n")
 
     def create_file(self, file_name, size, PID):

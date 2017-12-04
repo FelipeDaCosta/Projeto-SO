@@ -25,6 +25,7 @@ class QueueMan():
             raise Exception("Capacidade maxima de processos atingida (1000).")
 
     def get_from_queue(self, io_man):
+        self.age()
         if len(self.real_time) != 0:
             process = self.real_time.pop(0)
         elif len(self.prioridade_1) != 0:
@@ -34,8 +35,11 @@ class QueueMan():
             except Exception as e:
                 print(e)
                 self.prioridade_1.append(process)
+                for p2 in self.prioridade_2:
+                    p2.age += 1
+                for p3 in self.prioridade_3:
+                    p3.age += 1
                 process = self.get_from_queue(io_man)
-
             for p2 in self.prioridade_2:
                 p2.age += 1
             for p3 in self.prioridade_3:
@@ -47,6 +51,8 @@ class QueueMan():
             except Exception as e:
                 print(e)
                 self.prioridade_2.append(process)
+                for p3 in self.prioridade_3:
+                    p3.age += 1
                 process = self.get_from_queue(io_man)
             for p3 in self.prioridade_3:
                 p3.age += 1
@@ -83,5 +89,11 @@ class QueueMan():
             proc.age = 0
             proc.prioridade = 2
         self.prioridade_3 = [proc for proc in self.prioridade_3 if proc not in aumentar_2]
+        if len(aumentar_1) > 0:
+            for proc in aumentar_1:
+                print("Processo", proc.pid, "aumentou para prioridade 1.")
+        if len(aumentar_2) > 0:
+            for proc in aumentar_2:
+                print("Processo", proc.pid, "aumentou para prioridade 2.")
         self.prioridade_2.extend(aumentar_2)
         self.prioridade_1.extend(aumentar_1)

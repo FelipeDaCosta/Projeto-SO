@@ -47,13 +47,13 @@ def start_process(process_info):
     proc_list_info = [pm.Process(proc) for proc in process_info_order]
     for proc in proc_list_info:
         try:
-            is_system_proc = proc.prioridade == 0  # se eh processo do sistema
-            memory.allocate(proc.blocos_mem, proc.pid, system=is_system_proc)
-            proc.offset = memory.get_proc_offset(proc.pid)
+            #is_system_proc = proc.prioridade == 0  # se eh processo do sistema
+            #memory.allocate(proc.blocos_mem, proc.pid, system=is_system_proc)
+            #proc.offset = memory.get_proc_offset(proc.pid)
+            #current_proc.print_info()
+            #print()
             proc_dict[proc.pid] = proc
             proc_list.append(proc)
-            proc.print_info()
-            print()
         except Exception as e:
             print(e)
     proc_list.sort(key=lambda p: p.tempo_de_init, reverse=True)
@@ -91,12 +91,13 @@ def run_operations(operations):
                 block_size = int(op_info[3])
                 blocks = file_man.create_file(file_name, block_size, process)
                 print("Sucesso")
-                print("O processo " + str(i) + " criou o arquivo " + file_name, end='')
+                print("O processo " + str(process) + " criou o arquivo " + file_name, end='')
                 print(" (blocos " + ', '.join([str(num) for num in blocks]) + ").\n")
             elif operation == 1:
-                file_man.delete_file(file_name, process)
+                proc_priority = proc_dict[process].prioridade
+                file_man.delete_file(file_name, process, force=(proc_priority == 0))
                 print("Sucesso")
-                print("O processo " + str(i) + " deletou o arquivo " + file_name + ".\n")
+                print("O processo " + str(process) + " deletou o arquivo " + file_name + ".\n")
         except Exception as e:
             print("Falha")
             print(e)
@@ -120,7 +121,7 @@ def run(proccess_info, files_info):
     proc_tempo_real = False
     current_proc = None
     while len(proc_list) > 0 or queue_man.size_of_all_queues() != 0 or current_proc is not None:
-        queue_man.age()
+        #queue_man.age()
         # Coloca os processos que chegaram agora na fila
         while len(proc_list) > 0 and proc_list[-1].tempo_de_init == time:
             queue_man.put_in_queue(proc_list.pop())
@@ -128,6 +129,13 @@ def run(proccess_info, files_info):
         if current_proc is None and queue_man.size_of_all_queues() != 0:
             current_proc = queue_man.get_from_queue(io_man)
             if current_proc.instruction_counter == 0:
+                #  T
+                is_system_proc = current_proc.prioridade == 0  # se eh processo do sistema
+                memory.allocate(current_proc.blocos_mem, current_proc.pid, system=is_system_proc)
+                current_proc.offset = memory.get_proc_offset(current_proc.pid)
+                current_proc.print_info()
+                print()
+                #  T
                 print("\nprocess", current_proc.pid, "=>")
                 print("P" + str(current_proc.pid) + " STARTED")
         # Roda uma instrucao do processo
@@ -148,8 +156,8 @@ def run(proccess_info, files_info):
         #queue_man.print_ages()
 
     # Print final disk state
-    #start_file_man(files_info)
-    #file_man.print_disk()
+    start_file_man(files_info)
+    file_man.print_disk()
 
 
 def main():
